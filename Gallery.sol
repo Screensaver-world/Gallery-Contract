@@ -4,12 +4,50 @@ pragma solidity ^0.6.0;
 
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/d9fa59f30a27f095c48b09555106fed0200654e0/contracts/token/ERC721/ERC721.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/d9fa59f30a27f095c48b09555106fed0200654e0/contracts/access/Ownable.sol";
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/d9fa59f30a27f095c48b09555106fed0200654e0/contracts/access/AccessControl.sol";
 
-contract Gallery is ERC721, Ownable {
+contract Admin is AccessControl {
+    bytes32 public constant METADATA_ADMIN = keccak256("METADATA_ADMIN");
+    bytes32 public constant WHITESLISTER = keccak256("WHITESLISTER");
+    bytes32 public constant BURNER = keccak256("BURNER");
+
+    modifier isMetadataAdmin(){
+       require(hasRole(METADATA_ADMIN, msg.sender));
+        _;
+    }
+
+    modifier isWhitelister(){
+       require(hasRole(WHITESLISTER, msg.sender));
+        _;
+    }
+
+    modifier isBurner(){
+       require(hasRole(BURNER, msg.sender));
+        _;
+    }
+
+    modifier isGlobalAdmin(){
+       require(hasRole(DEFAULT_ADMIN_ROLE,msg.sender));
+        _;
+    }
+
+    constructor() public {
+        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        _setupRole(METADATA_ADMIN, _msgSender());
+        _setupRole(WHITESLISTER, _msgSender());
+        _setupRole(BURNER, _msgSender());
+        _setRoleAdmin(DEFAULT_ADMIN_ROLE, WHITESLISTER);
+        _setRoleAdmin(DEFAULT_ADMIN_ROLE, METADATA_ADMIN);
+        _setRoleAdmin(DEFAULT_ADMIN_ROLE, BURNER);
+    }
+    
+}
+
+contract Gallery is ERC721, Ownable, Admin {
 
     // Mapping from tokenId to the creator's address.
     mapping(uint256 => address) private tokenCreators;
-
+    
     // Mapping of address to boolean indicating whether the address is whitelisted
     mapping(address => bool) private whitelistMap;
 
@@ -30,6 +68,9 @@ contract Gallery is ERC721, Ownable {
 
     // Mapping from tokenId to the current bidder.
     mapping(uint256 => address) private tokenCurrentBidders;
+
+    //mapping for paused Tokens
+    mapping(uint256 => bool) private tokenPaused;
 
     // Marketplace fee paid to the owner of the contract.
     uint256 private marketplaceFee = 3; // 3 %
@@ -56,8 +97,15 @@ contract Gallery is ERC721, Ownable {
         
     // AcceptBid(bidder, msg.sender, bidAmount, _tokenId);
     event AcceptBid(address bidder, address sender, uint256 bidAmount, uint256 _tokenId);
+
+    modifier isNotPaused(uint256 _tokenId) {
+        require(tokenPaused[_tokenId]==false,"token Paused");
+        _;
+    }
     
-    constructor() ERC721 ("Screensaver", "SVR") public {}
+    constructor() ERC721 ("Screensaver", "SVR") public {
+        whitelistMap[msg.sender] = true;
+    }
 
     /*
     * @dev Function to set the marketplace fee percentage.
@@ -69,6 +117,19 @@ contract Gallery is ERC721, Ownable {
         marketplaceFee = _percentage;
     }
 
+    //Paused Token - freezes buy, payout, and transfer function
+
+    function pauseToken(uint256 _tokenId) public onlyOwner {
+        require(_exists(_tokenId) == true, "Err: token id doesn't exists");
+        tokenPaused[_tokenId] = true;
+    }
+
+    function unPauseToken(uint256 _tokenID) public onlyOwner {
+        require(_exists(_tokenID) == true, "Err: token id doesn't exists");
+        tokenPaused[_tokenID] = false;
+    }
+
+
     /*
     * @dev Function to set the royalty fee percentage.
     * @param _percentage uint256 royalty fee to take split between seller and creator.
@@ -79,8 +140,8 @@ contract Gallery is ERC721, Ownable {
         royaltyFee = _percentage;
     }
 
-    function burn(uint256 _tokenID) public {
-        require(ownerOf(_tokenID) == msg.sender || owner() == msg.sender, "sender is not token owner of contract owner" );
+    function burn(uint256 _tokenID) public isNotPaused(_tokenID) {
+        require(ownerOf(_tokenID) == msg.sender || hasRole(BURNER, msg.sender), "sender is not token owner or do not have burner role" );
         _burn(_tokenID);
     }
 
@@ -99,7 +160,7 @@ contract Gallery is ERC721, Ownable {
     * @param _enabled bool of whether to enable the whitelist.
     */
     function setEnabledWhitelist(bool _enabled) 
-        public onlyOwner
+        public isWhitelister
     {
         whitelistEnabled = _enabled;
     }
@@ -109,7 +170,7 @@ contract Gallery is ERC721, Ownable {
     * @param _addresses address[] of addresses to whitelist.
     */
     function addToWhitelist(address[] memory _addresses)
-        public onlyOwner
+        public isWhitelister
     {
         // Add all _addresses.
         for (uint256 i = 0; i < _addresses.length; i++) {
@@ -126,7 +187,7 @@ contract Gallery is ERC721, Ownable {
     * @param _addresses address[] of addresses to whitelist.
     */
     function removeFromWhitelist(address[] memory _addresses) 
-        public onlyOwner
+        public isWhitelister
     {
         // Add all _addresses.
         for (uint256 i = 0; i < _addresses.length; i++) {
@@ -167,6 +228,7 @@ contract Gallery is ERC721, Ownable {
         uint256 _newTokenId = totalSupply()+1;
         _mint(_creator, _newTokenId);
         _setTokenURI(_newTokenId, _uri);
+        tokenPaused[_newTokenId]=false;
         tokenCreators[_newTokenId] = _creator;
     }
 
@@ -244,6 +306,7 @@ contract Gallery is ERC721, Ownable {
     function buy(uint256 _tokenId)
         public payable
         ownerMustHaveMarketplaceApproved(_tokenId)
+        isNotPaused(_tokenId)
     {
         // Check that the person who set the price still owns the token.
         require(
@@ -406,9 +469,8 @@ contract Gallery is ERC721, Ownable {
     * @param _tokenId uint256 ID of the token
     */
     function bid(uint256 _tokenId)
-        public payable 
+        public payable isNotPaused(_tokenId)
     {
-
         uint256 _newBid = msg.value;
         address _newBidder = msg.sender;
 
@@ -440,6 +502,7 @@ contract Gallery is ERC721, Ownable {
         public
         ownerMustHaveMarketplaceApproved( _tokenId)
         senderMustBeTokenOwner(_tokenId)
+        isNotPaused(_tokenId)
     {
         // Check that a bid exists.
         require(
@@ -561,6 +624,10 @@ contract Gallery is ERC721, Ownable {
         internal view returns (bool)
     {
         return tokenCurrentBidders[_tokenId] != address(0);
+    }
+    
+    function tokenIdPauseStatus(uint256 _tokenId) external view returns (bool){
+        return tokenPaused[_tokenId];
     }
 
 }
