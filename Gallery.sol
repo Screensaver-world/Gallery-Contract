@@ -10,17 +10,17 @@ contract Admin is AccessControl {
     bytes32 public constant WHITESLISTER = keccak256("WHITESLISTER");
     bytes32 public constant BURNER = keccak256("BURNER");
 
-    modifier isWhitelister(){
+    modifier isWhitelister() {
        require(hasRole(WHITESLISTER, msg.sender));
         _;
     }
 
-    modifier isBurner(){
+    modifier isBurner() {
        require(hasRole(BURNER, msg.sender));
         _;
     }
 
-    modifier isGlobalAdmin(){
+    modifier isGlobalAdmin() {
        require(hasRole(DEFAULT_ADMIN_ROLE,msg.sender));
         _;
     }
@@ -30,7 +30,6 @@ contract Admin is AccessControl {
         _setupRole(WHITESLISTER, _msgSender());
         _setupRole(BURNER, _msgSender());
         _setRoleAdmin(DEFAULT_ADMIN_ROLE, WHITESLISTER);
-        _setRoleAdmin(DEFAULT_ADMIN_ROLE, METADATA_ADMIN);
         _setRoleAdmin(DEFAULT_ADMIN_ROLE, BURNER);
     }
     
@@ -619,7 +618,7 @@ contract Gallery is ERC721, Ownable, Admin {
         return tokenCurrentBidders[_tokenId] != address(0);
     }
     
-    function toeknIdPauseStatus(uint256 _tokenId) external view returns (bool){
+    function tokenIdPauseStatus(uint256 _tokenId) external view returns (bool){
         return tokenPaused[_tokenId];
     }
 
