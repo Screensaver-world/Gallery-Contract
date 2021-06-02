@@ -7,14 +7,8 @@ import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/d9fa59f30a27
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/d9fa59f30a27f095c48b09555106fed0200654e0/contracts/access/AccessControl.sol";
 
 contract Admin is AccessControl {
-    bytes32 public constant METADATA_ADMIN = keccak256("METADATA_ADMIN");
     bytes32 public constant WHITESLISTER = keccak256("WHITESLISTER");
     bytes32 public constant BURNER = keccak256("BURNER");
-
-    modifier isMetadataAdmin(){
-       require(hasRole(METADATA_ADMIN, msg.sender));
-        _;
-    }
 
     modifier isWhitelister(){
        require(hasRole(WHITESLISTER, msg.sender));
@@ -33,7 +27,6 @@ contract Admin is AccessControl {
 
     constructor() public {
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
-        _setupRole(METADATA_ADMIN, _msgSender());
         _setupRole(WHITESLISTER, _msgSender());
         _setupRole(BURNER, _msgSender());
         _setRoleAdmin(DEFAULT_ADMIN_ROLE, WHITESLISTER);
@@ -626,7 +619,7 @@ contract Gallery is ERC721, Ownable, Admin {
         return tokenCurrentBidders[_tokenId] != address(0);
     }
     
-    function tokenIdPauseStatus(uint256 _tokenId) external view returns (bool){
+    function toeknIdPauseStatus(uint256 _tokenId) external view returns (bool){
         return tokenPaused[_tokenId];
     }
 
