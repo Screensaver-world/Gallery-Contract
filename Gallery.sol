@@ -96,9 +96,7 @@ contract Gallery is ERC721, Ownable, Admin {
         _;
     }
     
-    constructor() ERC721 ("Screensaver", "SVR") public {
-        whitelistMap[msg.sender] = true;
-    }
+    constructor() ERC721 ("Screensaver.world", "SW") public {}
 
     /*
     * @dev Function to set the marketplace fee percentage.
@@ -622,8 +620,20 @@ contract Gallery is ERC721, Ownable, Admin {
         return tokenCurrentBidders[_tokenId] != address(0);
     }
     
-    function toeknIdPauseStatus(uint256 _tokenId) external view returns (bool){
+    /*
+    * @dev External function see if the token has been paused.
+    * @param _tokenId uint256 id of the token.
+    */
+    function tokenIdPauseStatus(uint256 _tokenId) external view returns (bool){
         return tokenPaused[_tokenId];
+    }
+    
+    /*
+    * @dev External function see how many tokens have been minted regardless of burning.
+    */
+    
+    function totalMinted() external view returns (uint256){
+        return _tokenIds;
     }
 
 }
