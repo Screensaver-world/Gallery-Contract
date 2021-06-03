@@ -36,6 +36,7 @@ contract Admin is AccessControl {
 }
 
 contract Gallery is ERC721, Ownable, Admin {
+    uint256 private _tokenIds;
 
     // Mapping from tokenId to the creator's address.
     mapping(uint256 => address) private tokenCreators;
@@ -211,17 +212,20 @@ contract Gallery is ERC721, Ownable, Admin {
     */
     function createToken(string memory _uri)
         public
+        returns (uint256)
     {
         address _creator = msg.sender;
         require(
             isWhitelisted(_creator),
             "must be whitelisted to create tokens"
         );
-        uint256 _newTokenId = totalSupply()+1;
+        _tokenIds++;
+        uint256 _newTokenId = _tokenIds;
         _mint(_creator, _newTokenId);
         _setTokenURI(_newTokenId, _uri);
         tokenPaused[_newTokenId]=false;
         tokenCreators[_newTokenId] = _creator;
+        return _newTokenId;
     }
 
 
@@ -618,7 +622,7 @@ contract Gallery is ERC721, Ownable, Admin {
         return tokenCurrentBidders[_tokenId] != address(0);
     }
     
-    function tokenIdPauseStatus(uint256 _tokenId) external view returns (bool){
+    function toeknIdPauseStatus(uint256 _tokenId) external view returns (bool){
         return tokenPaused[_tokenId];
     }
 
