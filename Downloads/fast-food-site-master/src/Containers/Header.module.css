@@ -1,0 +1,11 @@
+.container {
+  background: #d5d7e1;
+  width: 100%;
+  padding-top: 110px;
+}
+
+.wrap {
+  margin: auto;
+  max-width: 1140px;
+  max-height: 540px;
+}

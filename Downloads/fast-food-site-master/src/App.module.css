@@ -1,0 +1,21 @@
+.mobileCover {
+  background: white;
+  position: absolute;
+  display: none;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 999;
+  text-align: center;
+  font-size: 32px;
+  font-family: 'Londrina';
+  padding: 32px;
+  padding-top: 50%;
+}
+
+@media (max-width: 800px) {
+  .mobileCover {
+    display: block;
+  }
+}
